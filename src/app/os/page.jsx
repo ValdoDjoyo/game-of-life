@@ -1,27 +1,78 @@
 "use client";
-import { userAgent } from "next/server";
-import { hostname } from "os";
+
 import React, { useEffect, useState } from "react";
-export default function page() {
-	const [data, setData] = useState();
-const [keyboard, setKeyboard] = useState("");
+
+export default function Page() {
+	const [data, setData] = useState(null); // Données système
+	const [keyboard, setKeyboard] = useState(""); // Langue du clavier
+
 	useEffect(() => {
-		const fetchHostname = async () => {
+		// Appeler l'API pour récupérer les données système
+		const fetchSystemInfo = async () => {
 			const response = await fetch("/api/os");
-			const data = await response.json();
-			setData(data);
-			console.log(data);
+			const result = await response.json();
+			setData(result.data);
 		};
-		fetchHostname();
-setKeyboard(navigator.language);
+
+		// Récupérer la langue du clavier
+		setKeyboard(navigator.language);
+
+		fetchSystemInfo();
 	}, []);
+
+	if (!data) {
+		return <p>Chargement des informations...</p>;
+	}
+
 	return (
 		<div>
 			<h1>Voici les informations de ma machine</h1>
-			<p>Nom de la machine : {data?.data?.hostname}</p>
-            <p>OS : {data?.data?.type}</p>
-			<p>Version : {data?.data?.release}</p>
-			<p>clavier de la machine : {keyboard}</p>
+			<p>Nom de la machine : {data.hostname}</p>
+			<p>Plateforme : {data.platform}</p>
+			<p>Type d'OS : {data.type}</p>
+			<p>Version : {data.release}</p>
+			<p>Architecture : {data.arch}</p>
+			<p>
+				Mémoire totale : {(data.totalMem / 1024 / 1024).toFixed(2)} MB
+			</p>
+			<p>
+				Mémoire libre : {(data.freeMem / 1024 / 1024).toFixed(2)} MB
+			</p>
+			<p>
+				Temps de fonctionnement : {(data.uptime / 3600).toFixed(2)}{" "}
+				heures
+			</p>
+			<p>Clavier de la machine : {keyboard}</p>
+			<p>Répertoire utilisateur : {data.homeDir}</p>
+			<p>Répertoire temporaire : {data.tempDir}</p>
+
+			<h2>Processeurs :</h2>
+			<ul>
+				{data.cpus.map((cpu, index) => (
+					<li key={index}>
+						Modèle : {cpu.model}, Vitesse : {cpu.speed} MHz
+					</li>
+				))}
+			</ul>
+
+			<h2>Interfaces réseau :</h2>
+			<ul>
+				{Object.entries(data.networkInterfaces).map(
+					([name, interfaces]) => (
+						<li key={name}>
+							<strong>{name} :</strong>
+							<ul>
+								{interfaces.map((iface, idx) => (
+									<li key={idx}>
+										Adresse : {iface.address}, Famille :{" "}
+										{iface.family}, Netmask : {iface.netmask}
+									</li>
+								))}
+							</ul>
+						</li>
+					)
+				)}
+			</ul>
 		</div>
 	);
 }
